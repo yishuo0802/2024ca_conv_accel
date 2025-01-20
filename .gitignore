@@ -4,3 +4,5 @@ Example/
 __pycache__/
 weight/
 .DS_Store
+weights/
+data/
