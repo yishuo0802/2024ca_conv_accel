@@ -6,8 +6,9 @@ import torch
 import torch.ao.quantization as tq
 
 
-DEFAULT_DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-
+DEFAULT_DEVICE = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
+DEFAULT_DEVICE = "cpu"
+print(f"Using device: {DEFAULT_DEVICE}")
 
 def evaluate(model, loader, criterion, device=DEFAULT_DEVICE):
     running_loss = 0

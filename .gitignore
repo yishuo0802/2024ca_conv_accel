@@ -1,3 +1,6 @@
 *.sh
 out/
 Example/
+__pycache__/
+weight/
+.DS_Store

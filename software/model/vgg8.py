@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.ao.quantization as tq
 
 
-class AlexNet(nn.Module):
+class VGG8(nn.Module):
     def __init__(self, in_channels=3, in_size=32, num_classes=10) -> None:
         super().__init__()
         self.fmap_size = in_size
@@ -74,7 +74,7 @@ class AlexNet(nn.Module):
         )
 
 
-class AlexNetBn(AlexNet):
+class VGG8Bn(VGG8):
     def __init__(self, in_channels=3, in_size=32, num_classes=10) -> None:
         super().__init__(in_channels, in_size, num_classes)
 
