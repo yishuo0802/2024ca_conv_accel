@@ -1,25 +1,27 @@
 import numpy as np
-import os
+import logging
 
-def tile_and_save_matrix(matrix, tile_row_size, tile_col_size, output_dir, file_prefix):
+# Configure logging
+# logging.basicConfig(filename='matrix_tile.log', level=logging.INFO, format='%(message)s')
+
+def tile_matrix(matrix, tile_row_size, tile_col_size):
     """
-    Split a large matrix into multiple sub-matrices and save them as TXT files.
+    Split a large matrix into multiple sub-matrices.
     
     Parameters:
     - matrix: np.ndarray, the large matrix
     - tile_row_size: int, the row size of the sub-matrix
     - tile_col_size: int, the column size of the sub-matrix
-    - output_dir: str, the output directory path to store the sub-matrices
-    - file_prefix: str, the prefix for the output file names
+
+    Returns:
+    - List of np.ndarray, the tiled sub-matrices
     """
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-    
     rows, cols = matrix.shape
-    tile_count = 0  # Used to mark the tile number
-    
+    tiled_matrices = []
+
     # Traverse the large matrix and split into sub-matrices
     for row_start in range(0, rows, tile_row_size):
+        row_tiles = []
         for col_start in range(0, cols, tile_col_size):
             # Calculate the actual size of the current tile
             row_end = min(row_start + tile_row_size, rows)
@@ -27,47 +29,53 @@ def tile_and_save_matrix(matrix, tile_row_size, tile_col_size, output_dir, file_
             
             # Extract the sub-matrix
             sub_matrix = matrix[row_start:row_end, col_start:col_end]
-            
-            # Save the sub-matrix as a TXT file
-            file_name = f"{file_prefix}_tile_{tile_count}_rows_{row_start}_{row_end}_cols_{col_start}_{col_end}.txt"
-            file_path = os.path.join(output_dir, file_name)
-            np.savetxt(file_path, sub_matrix, delimiter=",")
-            print(f"Saved: {file_path}")
-            
-            tile_count += 1
+            row_tiles.append(sub_matrix)
+        tiled_matrices.append(row_tiles)
 
-def process_layer_files(layer, input_dir, output_dir, tile_row_size, tile_col_size):
-    """
-    Process the input files for a specific layer and save the tiled matrices.
-    
-    Parameters:
-    - layer: int, the layer number
-    - input_dir: str, the input directory path containing the files
-    - output_dir: str, the base output directory path
-    - tile_row_size: int, the row size of the sub-matrix
-    - tile_col_size: int, the column size of the sub-matrix
-    """
-    layer_input_dir = os.path.join(input_dir, f"layer{layer}")
-    layer_output_dir = os.path.join(output_dir, f"layer_{layer}")
-    
-    ifmap_file = os.path.join(layer_input_dir, f"layer{layer}_ifmap_img2col.txt")
-    filter_file = os.path.join(layer_input_dir, f"layer{layer}_filter_img2col.txt")
-    
-    if os.path.exists(ifmap_file) and os.path.exists(filter_file):
-        ifmap_matrix = np.loadtxt(ifmap_file, delimiter=",")
-        filter_matrix = np.loadtxt(filter_file, delimiter=",")
-        
-        tile_and_save_matrix(ifmap_matrix, tile_row_size, tile_col_size, layer_output_dir, f"layer{layer}_ifmap")
-        tile_and_save_matrix(filter_matrix, tile_row_size, tile_col_size, layer_output_dir, f"layer{layer}_filter")
-    else:
-        print(f"Files for layer {layer} not found in {layer_input_dir}")
+    return tiled_matrices
 
-# Parameters
-input_directory = "/path/to/input/directory"  # Change this to your input directory path
-output_directory = "../data/"
-tile_row_size = 8  # Maximum number of rows in the sub-matrix
-tile_col_size = 8  # Maximum number of columns in the sub-matrix
+# # Example usage
+# if __name__ == "__main__":
+#     # Example input matrices
+#     matrix_a = np.arange(20 * 16, dtype=np.uint8).reshape(20, 16)
+#     matrix_b = np.arange(16 * 12, dtype=np.int8).reshape(16, 12)
+    
+#     # Tiling parameters
+#     tile_row_size = 8
+#     tile_col_size = 8
 
-# Process layers
-for layer in range(1, 6):
-    process_layer_files(layer, input_directory, output_directory, tile_row_size, tile_col_size)
+#     # Tile the matrices
+#     tiled_matrix_a = tile_matrix(matrix_a, tile_row_size, tile_col_size)
+#     tiled_matrix_b = tile_matrix(matrix_b, tile_row_size, tile_col_size)
+
+#     # logging.info("-------------------------------------------------")
+#     # logging.info("Number of tiles for A")
+#     # logging.info("num_row_tile: %d num_col_tile: %d", len(tiled_matrix_a), len(tiled_matrix_a[0]))
+#     # logging.info("-------------------------------------------------")
+#     # logging.info("Number of tiles for B: %d", len(tiled_matrix_b))
+#     # logging.info("num_row_tile: %d num_col_tile: %d", len(tiled_matrix_b), len(tiled_matrix_b[0]))
+#     # logging.info("-------------------------------------------------")
+
+#     # Reconstruct matrices from tiles and verify correctness
+#     reconstructed_a = np.block([
+#         [tiled_matrix_a[i][j] for j in range(len(tiled_matrix_a[0]))]
+#         for i in range(len(tiled_matrix_a))
+#     ])
+
+#     reconstructed_b = np.block([
+#         [tiled_matrix_b[i][j] for j in range(len(tiled_matrix_b[0]))]
+#         for i in range(len(tiled_matrix_b))
+#     ])
+
+#     result_original = np.dot(matrix_a, matrix_b)
+#     result_tiled = np.dot(reconstructed_a, reconstructed_b)
+
+#     # logging.info("Original matrix multiplication result:")
+#     # logging.info(result_original)
+#     # logging.info("Tiled matrix multiplication result:")
+#     # logging.info(result_tiled)
+
+#     # Verify correctness
+#     assert np.array_equal(result_original, result_tiled), "Results do not match!"
+#     # logging.info("Verification passed: Tiled multiplication matches original multiplication.")
+#     print("Verification passed: Tiled multiplication matches original multiplication.")
