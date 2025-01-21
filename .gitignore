@@ -6,3 +6,5 @@ weight/
 .DS_Store
 weights/
 data/
+*.log
+*.out
