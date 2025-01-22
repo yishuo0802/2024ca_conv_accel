@@ -1,28 +1,87 @@
-# 編譯器
-CXX = g++
+SRC = $(wildcard ../src/SystolicArray.v)
 
-# 編譯選項
-CXXFLAGS = -I/opt/homebrew/Caskroom/miniconda/base/envs/ca2024/include/python3.10 \
+ifeq ($(VERILATOR_ROOT),)
+VERILATOR = verilator
+VERILATOR_COVERAGE = verilator_coverage
+else
+export VERILATOR_ROOT
+VERILATOR = $(VERILATOR_ROOT)/bin/verilator
+VERILATOR_COVERAGE = $(VERILATOR_ROOT)/bin/verilator_coverage
+endif
+
+VERILATOR_FLAGS += --cc --exe
+CXXFLAGS += -g
+CXXFLAGS += -I/opt/homebrew/Caskroom/miniconda/base/envs/ca2024/include/python3.10 \
            -I/opt/homebrew/Caskroom/miniconda/base/envs/ca2024/lib/python3.10/site-packages/numpy/_core/include
 
-# 鏈接選項，包含動態庫的路徑和名稱
-LDFLAGS = -L/opt/homebrew/Caskroom/miniconda/base/envs/ca2024/lib -lpython3.10 \
+LDFLAGS += -L/opt/homebrew/Caskroom/miniconda/base/envs/ca2024/lib -lpython3.10 \
           -Wl,-rpath,/opt/homebrew/Caskroom/miniconda/base/envs/ca2024/lib
 
-# 目標執行檔名稱
-TARGET = main.out
+# Optimize
+# VERILATOR_FLAGS += -x-assign fast
 
-# 原始碼檔案
-SRC = main.cpp
+# Warn abount lint issues; may not want this on less solid designs
+# VERILATOR_FLAGS += -Wall
+# VERILATOR_FLAGS += -Wall -Wno-lint
 
-# 編譯目標
-all: $(TARGET)
-	@echo "Running $(TARGET)..."
-	./$(TARGET) > output.log
+# Automatically build the Verilated model
+VERILATOR_FLAGS += --build
 
-$(TARGET): $(SRC)
-	$(CXX) -o $@ $^ $(CXXFLAGS) $(LDFLAGS)
+# Make waveforms
+VERILATOR_FLAGS += --trace
+VERILATOR_FLAGS += --trace-max-array 1024
 
-# 清理編譯產物
-clean:
-	rm -f $(TARGET)
+# Run Verilator in debug mode
+# VERILATOR_FLAGS += --debug
+
+LOG_FILE ?= logs/terminal_text.log
+
+######################################################################
+default: all
+
+.PHONY: all
+
+run:
+	@echo
+	@echo "-- Verilator Start"
+
+	@echo
+	@echo "-- VERILATE ----------------"
+	$(VERILATOR) $(VERILATOR_FLAGS) $(VERILATOR_INPUT)
+
+	@echo
+	@echo "-- RUN ---------------------"
+	@rm -rf logs
+	@mkdir -p logs
+	obj_dir/VPE_array +trace > $(LOG_FILE)
+
+	@echo
+	@echo "-- DONE --------------------"
+	@echo "To see waveforms, open PE_wave.vcd in a waveform viewer"
+	@echo
+
+######################################################################
+# Specific Testbench Targets
+# Pass TB_select as a parameter to the simulation executable
+.PHONY: sa0
+
+sa0: VERILATOR_FLAGS += -CFLAGS -DTB_PE=0
+sa0: VERILATOR_INPUT = $(SRC) ./test_systolic_array.cpp
+sa0: LOG_FILE = logs/systolic_array.log
+sa0: run
+	@chmod 666 ./test_systolic_array.cpp
+
+
+######################################################################
+# Other targets
+
+format:
+	clang-format -i testbench/*.cpp testbench/*.h
+	@chmod 666 ./testbench/*.cpp
+	@chmod 666 ./testbench/*.h
+show-config:
+	$(VERILATOR) -V
+
+maintainer-copy::
+clean mostlyclean distclean maintainer-clean::
+	-rm -rf obj_dir logs *.log *.dmp *.vpd *.vcd *.fsdb coverage.dat core

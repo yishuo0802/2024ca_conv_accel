@@ -42,8 +42,3 @@ class PE extends Module {
   io.weight_o := weight
   io.opsum := Mux(io.read_en, psum, 0.S)
 }
-
-// Generate the Verilog code
-object PE extends App {
-  (new ChiselStage).emitVerilog(new PE)
-}
