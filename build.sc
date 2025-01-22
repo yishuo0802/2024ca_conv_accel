@@ -1,19 +1,33 @@
-import mill._, scalalib._
+// import Mill dependency
+import mill._
+import mill.define.Sources
+import mill.modules.Util
+import mill.scalalib.TestModule.ScalaTest
+import scalalib._
+// support BSP
+import mill.bsp._
 
-object conv_accelerator extends ScalaModule with TestModule {
-  def scalaVersion = "2.13.8" // 指定 Scala 版本
-
-  // Chisel 和測試框架的依賴
-  def ivyDeps = Agg(
-    ivy"edu.berkeley.cs::chisel3:3.5.0",       // Chisel 主程式
-    ivy"edu.berkeley.cs::chiseltest:0.5.4"    // ChiselTest 測試框架
+object conv_accelerator extends SbtModule { m =>
+  override def millSourcePath = os.pwd
+  override def scalaVersion = "2.13.8"
+  override def scalacOptions = Seq(
+    "-language:reflectiveCalls",
+    "-deprecation",
+    "-feature",
+    "-Xcheckinit",
+  )
+  override def ivyDeps = Agg(
+    ivy"edu.berkeley.cs::chisel3:3.5.0",
+    ivy"edu.berkeley.cs::chiseltest:0.5.5"
   )
 
-  // 定義測試檔案來源
-  def testSources = T.sources {
-    millSourcePath / "src" / "test" / "scala"
-  }
+  def scalacPluginIvyDeps = Agg(
+    ivy"edu.berkeley.cs:::chisel3-plugin:3.5.5" // Chisel 編譯器插件
+  )
 
-  // 指定測試框架
-  def testFramework = T { "org.scalatest.tools.Framework" }
+  object test extends SbtModuleTests with TestModule.ScalaTest {
+    override def ivyDeps = m.ivyDeps() ++ Agg(
+      ivy"org.scalatest::scalatest::3.2.15"
+    )
+  }
 }

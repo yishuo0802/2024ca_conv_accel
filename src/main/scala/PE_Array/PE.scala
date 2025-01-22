@@ -1,5 +1,6 @@
 import chisel3._
 import chisel3.util._
+import chisel3.stage.ChiselStage
 
 // Define parameters for ADD and MUL operations
 object OperationMode {
@@ -7,12 +8,9 @@ object OperationMode {
   val MUL = 1.U(1.W)
 }
 
-
 // Define the PE Accumulator module
 class PE extends Module {
   val io = IO(new Bundle {
-    val clk = Input(Clock())
-    val reset = Input(Bool())
     val compute_en = Input(Bool())
     val read_en = Input(Bool())
     val compute_mode = Input(Bool())
@@ -28,9 +26,11 @@ class PE extends Module {
   val weight = RegInit(0.S(8.W))
   val psum = RegInit(0.S(32.W))
 
-  when (io.reset) {
+  when (reset.asBool) {
     psum := 0.S
   } .elsewhen (io.compute_en) {
+    ifmap := io.ifmap_i
+    weight := io.weight_i
     when (io.compute_mode === OperationMode.ADD) {
       psum := io.ipsum
     } .elsewhen (io.compute_mode === OperationMode.MUL) {
@@ -40,10 +40,10 @@ class PE extends Module {
 
   io.ifmap_o := ifmap
   io.weight_o := weight
-  io.opsum := if (read_en) psum else 0.S
+  io.opsum := Mux(io.read_en, psum, 0.S)
 }
 
 // Generate the Verilog code
-object PEAccumulatorMain extends App {
-  (new chisel3.stage.ChiselStage).emitVerilog(new PE)
+object PE extends App {
+  (new ChiselStage).emitVerilog(new PE)
 }
