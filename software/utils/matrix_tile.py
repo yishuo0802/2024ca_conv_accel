@@ -1,81 +1,50 @@
 import numpy as np
-import logging
 
-# Configure logging
-# logging.basicConfig(filename='matrix_tile.log', level=logging.INFO, format='%(message)s')
-
-def tile_matrix(matrix, tile_row_size, tile_col_size):
+def tile_matrix(matrix, tile_dir, tile_size):
     """
-    Split a large matrix into multiple sub-matrices.
-    
-    Parameters:
-    - matrix: np.ndarray, the large matrix
-    - tile_row_size: int, the row size of the sub-matrix
-    - tile_col_size: int, the column size of the sub-matrix
+    Tile the input matrix into smaller matrices based on tile_dir and tile_size.
+
+    Args:
+        matrix (np.ndarray): Input 2D matrix to be tiled.
+        tile_dir (str): Direction of tiling ('row' or 'col').
+        tile_size (int): Size of each tile along the specified direction.
 
     Returns:
-    - List of np.ndarray, the tiled sub-matrices
+        np.ndarray: A 3D array where each slice along the third dimension is a tile.
     """
-    rows, cols = matrix.shape
-    tiled_matrices = []
+    if not isinstance(matrix, np.ndarray):
+        raise ValueError("Input matrix must be a numpy array.")
 
-    # Traverse the large matrix and split into sub-matrices
-    for row_start in range(0, rows, tile_row_size):
-        row_tiles = []
-        for col_start in range(0, cols, tile_col_size):
-            # Calculate the actual size of the current tile
-            row_end = min(row_start + tile_row_size, rows)
-            col_end = min(col_start + tile_col_size, cols)
-            
-            # Extract the sub-matrix
-            sub_matrix = matrix[row_start:row_end, col_start:col_end]
-            row_tiles.append(sub_matrix)
-        tiled_matrices.append(row_tiles)
+    if tile_dir not in ('row', 'col'):
+        raise ValueError("tile_dir must be either 'row' or 'col'.")
 
-    return tiled_matrices
+    if not isinstance(tile_size, int) or tile_size <= 0:
+        raise ValueError("tile_size must be a positive integer.")
 
-# # Example usage
-# if __name__ == "__main__":
-#     # Example input matrices
-#     matrix_a = np.arange(20 * 16, dtype=np.uint8).reshape(20, 16)
-#     matrix_b = np.arange(16 * 12, dtype=np.int8).reshape(16, 12)
-    
-#     # Tiling parameters
-#     tile_row_size = 8
-#     tile_col_size = 8
+    if tile_dir == 'row':
+        if matrix.shape[0] % tile_size != 0:
+            raise ValueError("Number of rows is not divisible by tile_size.")
 
-#     # Tile the matrices
-#     tiled_matrix_a = tile_matrix(matrix_a, tile_row_size, tile_col_size)
-#     tiled_matrix_b = tile_matrix(matrix_b, tile_row_size, tile_col_size)
+        num_tiles = matrix.shape[0] // tile_size
+        tiled = matrix.reshape(num_tiles, tile_size, matrix.shape[1])
+        return tiled
 
-#     # logging.info("-------------------------------------------------")
-#     # logging.info("Number of tiles for A")
-#     # logging.info("num_row_tile: %d num_col_tile: %d", len(tiled_matrix_a), len(tiled_matrix_a[0]))
-#     # logging.info("-------------------------------------------------")
-#     # logging.info("Number of tiles for B: %d", len(tiled_matrix_b))
-#     # logging.info("num_row_tile: %d num_col_tile: %d", len(tiled_matrix_b), len(tiled_matrix_b[0]))
-#     # logging.info("-------------------------------------------------")
+    elif tile_dir == 'col':
+        if matrix.shape[1] % tile_size != 0:
+            raise ValueError("Number of columns is not divisible by tile_size.")
+        print("matrix shape", matrix.shape)
+        num_tiles = matrix.shape[1] // tile_size
+        tiled = matrix.reshape(matrix.shape[0], num_tiles, tile_size).transpose(1, 0, 2)
+        return tiled
 
-#     # Reconstruct matrices from tiles and verify correctness
-#     reconstructed_a = np.block([
-#         [tiled_matrix_a[i][j] for j in range(len(tiled_matrix_a[0]))]
-#         for i in range(len(tiled_matrix_a))
-#     ])
+# Example Usage
+# matrix = np.arange(32).reshape(4, 8)
+# print("Input Matrix:")
+# print(matrix)
+# row_tiled = tile_matrix(matrix, 'row', 2)``
+# print("\nRow Tiled Matrix:")
+# print(row_tiled)
 
-#     reconstructed_b = np.block([
-#         [tiled_matrix_b[i][j] for j in range(len(tiled_matrix_b[0]))]
-#         for i in range(len(tiled_matrix_b))
-#     ])
-
-#     result_original = np.dot(matrix_a, matrix_b)
-#     result_tiled = np.dot(reconstructed_a, reconstructed_b)
-
-#     # logging.info("Original matrix multiplication result:")
-#     # logging.info(result_original)
-#     # logging.info("Tiled matrix multiplication result:")
-#     # logging.info(result_tiled)
-
-#     # Verify correctness
-#     assert np.array_equal(result_original, result_tiled), "Results do not match!"
-#     # logging.info("Verification passed: Tiled multiplication matches original multiplication.")
-#     print("Verification passed: Tiled multiplication matches original multiplication.")
+# col_tiled = tile_matrix(matrix, 'col', 2)
+# print("\nColumn Tiled Matrix:")
+# print(col_tiled)
